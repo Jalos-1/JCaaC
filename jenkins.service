@@ -1,0 +1,10 @@
+[Unit]
+Description=Jenkins Daemon
+
+[Service]
+ExecStart=/usr/bin/java -Djenkins.install.runSetupWizard=false -jar /opt/jenkins/jenkins.war
+User=jenkins
+Environment="CASC_JENKINS_CONFIG=/opt/jenkins/jenkins.yaml"
+
+[Install]
+WantedBy=multi-user.target

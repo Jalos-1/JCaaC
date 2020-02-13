@@ -1,0 +1,61 @@
+- hosts: all
+  become: yes
+  become_user: root
+  vars:
+    version: latest
+  tasks:
+  - name: Create Jenkins master user
+    user:
+        name: jenkins # required. Name of the user to create, remove or modify.
+        comment: Service user for Jenkins master process # not required. Optionally sets the description (aka I(GECOS)) of user account.
+        ssh_key_bits: 4096 # not required. Optionally specify number of bits in SSH key to create.
+        update_password: always # not required. choices: always;on_create. C(always) will update passwords if they differ.  C(on_create) will only set the password for newly created users.
+        create_home: yes # not required. Unless set to C(no), a home directory will be made for the user when the account is created or if the home directory does not exist.,Changed from C(createhome) to C(create_home) in version 2.5.
+        home: /opt/jenkins/ # not required. Optionally set the user's home directory.
+        generate_ssh_key: yes # not required. Whether to generate a SSH key for the user in question. This will B(not) overwrite an existing SSH key.
+        uid: 7790 # not required. Optionally sets the I(UID) of the user.
+        shell: /sbin/nologin # not required. Optionally set the user's shell.,On macOS, before version 2.5, the default shell for non-system users was /usr/bin/false. Since 2.5, the default shell for non-system users on macOS is /bin/bash.
+        state: present # not required. choices: absent;present. Whether the account should exist or not, taking action if the state is different from what is stated.
+        ssh_key_file: .ssh/id_rsa # not required. Optionally specify the SSH key filename. If this is a relative filename then it will be relative to the user's home directory.
+        hidden: true # not required. macOS only, optionally hide the user from the login window and system preferences.,The default will be 'True' if the I(system) option is used.
+        ssh_key_type: rsa # not required. Optionally specify the type of SSH key to generate. Available SSH key types will depend on implementation present on target host.
+  - name: Install Oepen JDK 8
+    yum:
+      name: java-1.8.0-openjdk-devel.x86_64
+      state: present
+  - name: Install Python 3
+    yum:
+      name: python3
+      state: present
+  - name: Download jenkins
+    become: yes
+    become_user: jenkins
+    get_url:
+      dest: /opt/jenkins/
+      url: http://mirrors.jenkins.io/war-stable/{{ version }}/jenkins.war
+      checksum: sha256:http://mirrors.jenkins.io/war-stable/{{ version }}/jenkins.war.sha256
+  - name: Install Jenkins service
+    copy: src=jenkins.service dest=/etc/systemd/system/jenkins.service owner=root group=root mode=0640
+  - name: Enable Jenkins service
+    service: name=jenkins.service enabled=yes
+  - name: Start Jenkins service
+    service: name=jenkins.service state=started
+  - name: Copy jenkins as a code config
+    copy: src=jenkins.yaml dest=/opt/jenkins/jenkins.yaml owner=jenkins group=jenkins mode=0600
+  - name: Copy jenkins plugins install script
+    copy: src=download_jenkins_plugins.py dest=/opt/jenkins/.jenkins/download_jenkins_plugins.py owner=jenkins group=jenkins mode=0700
+  - name: Copy plugins list files
+    copy: src=plugins.list dest=/opt/jenkins/.jenkins/plugins.list owner=jenkins group=jenkins mode=0600
+  - name: Pause until Jenkins init
+    pause:
+      seconds: 30
+  - name: Stop Jenkins service
+    service: name=jenkins.service state=stopped
+  - name: Install plugins
+    shell:
+      cmd: /opt/jenkins/.jenkins/download_jenkins_plugins.py
+      chdir: /opt/jenkins/.jenkins/
+  - name: Start Jenkins service
+    service: name=jenkins.service state=started
+
+  
