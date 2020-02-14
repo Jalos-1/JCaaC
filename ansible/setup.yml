@@ -27,6 +27,17 @@
     yum:
       name: python3
       state: present
+  - name: Install Docker
+    yum:
+      name: docker
+      state: present
+  - name: Enable Docker Api
+    lineinfile:
+      dest: /etc/sysconfig/docker
+      regexp: '^OPTIONS=.*'
+      line: OPTIONS='--selinux-enabled --log-driver=journald --signature-verification=false -H unix:///var/run/docker.sock -H tcp://0.0.0.0:4243'
+  - name: Restart Docker service
+    service: name=docker.service state=restarted
   - name: Download jenkins
     become: yes
     become_user: jenkins
@@ -35,17 +46,17 @@
       url: http://mirrors.jenkins.io/war-stable/{{ version }}/jenkins.war
       checksum: sha256:http://mirrors.jenkins.io/war-stable/{{ version }}/jenkins.war.sha256
   - name: Install Jenkins service
-    copy: src=jenkins.service dest=/etc/systemd/system/jenkins.service owner=root group=root mode=0640
+    copy: src=../files/jenkins.service dest=/etc/systemd/system/jenkins.service owner=root group=root mode=0640
   - name: Enable Jenkins service
     service: name=jenkins.service enabled=yes
   - name: Start Jenkins service
     service: name=jenkins.service state=started
   - name: Copy jenkins as a code config
-    copy: src=jenkins.yaml dest=/opt/jenkins/jenkins.yaml owner=jenkins group=jenkins mode=0600
+    copy: src=../files/jenkins.yaml dest=/opt/jenkins/jenkins.yaml owner=jenkins group=jenkins mode=0600
   - name: Copy jenkins plugins install script
-    copy: src=download_jenkins_plugins.py dest=/opt/jenkins/.jenkins/download_jenkins_plugins.py owner=jenkins group=jenkins mode=0700
+    copy: src=../files/download_jenkins_plugins.py dest=/opt/jenkins/.jenkins/download_jenkins_plugins.py owner=jenkins group=jenkins mode=0700
   - name: Copy plugins list files
-    copy: src=plugins.list dest=/opt/jenkins/.jenkins/plugins.list owner=jenkins group=jenkins mode=0600
+    copy: src=../files/plugins.list dest=/opt/jenkins/.jenkins/plugins.list owner=jenkins group=jenkins mode=0600
   - name: Pause until Jenkins init
     pause:
       seconds: 30

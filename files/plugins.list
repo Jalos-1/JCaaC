@@ -1,6 +1,7 @@
 bouncycastle-api
 command-launcher
 configuration-as-code
+docker-plugin
 jdk-tool
 job-dsl
 pipeline-build-step
