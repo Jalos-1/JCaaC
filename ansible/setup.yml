@@ -27,6 +27,10 @@
     yum:
       name: python3
       state: present
+  - name: Install Git
+    yum:
+      name: git
+      state: present
   - name: Install Docker
     yum:
       name: docker
